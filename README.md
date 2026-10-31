@@ -118,7 +118,7 @@ The following screenshots capture the live user experience of the AI Universal C
 - **Conceptual Assessment Quiz:** Automatically generated multiple-choice and conceptual questions with instant feedback and pedagogical explanations.
 
 ### 6. Persistence & Session History
-- **Local SQLite Storage:** Uses WebAssembly-based `sql.js` to automatically persist generated plans and chat history to `visualizations.sqlite`.
+- **Local SQLite Storage:** Uses WebAssembly-based `sql.js` to automatically persist generated visualization plans and session metadata to `visualizations.sqlite`. The database file is runtime-generated when missing and is excluded from version control via `.gitignore`. (Note: AI Concept Tutor conversation history is maintained in-memory on the client during the active session and is not stored in SQLite).
 - **History Drawer:** Slide-out drawer allowing learners to review, reopen, or delete previous visual sessions.
 - **Health Monitoring:** Built-in server health check endpoint (`/api/health`) reporting database state and API key availability.
 
@@ -172,7 +172,7 @@ SQLite Database            Client Workspace          Explanation Deck
 2. **AI Planning with Failover:** `server.ts` sends a structured prompt to Google Gemini via `@google/genai`. If the primary model encounters transient errors, it automatically falls back to secondary candidates.
 3. **Resilient JSON Parsing:** `jsonParser.ts` strips code fences, repairs unescaped quotes, and extracts the JSON plan.
 4. **Validation and Schema Normalization:** `planValidator.ts` validates types, injects default values, checks step sequence consistency, and sanitizes curve formulas.
-5. **Persistence:** Validated plans are saved to the local SQLite database.
+5. **Persistence:** Validated visualization plans and session metadata are saved to the local `sessions` table in `visualizations.sqlite` (runtime-generated if absent, excluded from Git).
 6. **Declarative State Resolution:** `animationResolver.ts` computes active step properties, interpolates numeric timeline fields, and keeps user parameter slider values authoritative.
 7. **Rendering Dispatch:** `GenericVisualizationEngine.tsx` delegates rendering to the appropriate visualization component. Formulas are evaluated safely in `mathEvaluator.ts` without raw `eval`.
 8. **Interactive Learning & Tutoring:** The user scrubs timeline steps, tests parameter extremes, inspects equations, tests understanding with quizzes, and chats with the AI Tutor via `POST /api/chat`.
@@ -184,35 +184,35 @@ SQLite Database            Client Workspace          Explanation Deck
 ```mermaid
 flowchart TD
     subgraph Client ["Client: React 19 + Vite 8 + Tailwind CSS v4"]
-        LH[LandingHero: Prompt & Image Input]
-        TB[TopBar & Category Navigation]
-        HD[HistoryDrawer: SQLite Sessions]
+        LH["LandingHero: Prompt & Image Input"]
+        TB["TopBar & Category Navigation"]
+        HD["HistoryDrawer: SQLite Sessions"]
         
         subgraph Workspace ["VisualizationWorkspace"]
-            GVE[GenericVisualizationEngine]
-            CD[ControlDeck: Sliders & Playback]
+            GVE["GenericVisualizationEngine"]
+            CD["ControlDeck: Sliders & Playback"]
             
             subgraph Renderers ["Generic Visualization Renderers"]
-                R1[CoordinateGraphRenderer: SVG Curves & Vectors]
-                R2[DiscreteBlocksRenderer: SVG Arrays & Pointers]
-                R3[NodeNetworkRenderer: SVG Graphs & Packets]
-                R4[ParticleSystemRenderer: HTML5 Canvas 2D Physics]
+                R1["CoordinateGraphRenderer: SVG Curves & Vectors"]
+                R2["DiscreteBlocksRenderer: SVG Arrays & Pointers"]
+                R3["NodeNetworkRenderer: SVG Graphs & Packets"]
+                R4["ParticleSystemRenderer: HTML5 Canvas 2D Physics"]
             end
             
             subgraph Deck ["ExplanationPanel"]
-                EP1[Overview & Key Points]
-                EP2[Step-by-Step 5-Part Guidance]
-                EP3[Equations Tab: KaTeX]
-                EP4[Entities Tab: Components]
-                EP5[AI Concept Tutor: MarkdownRenderer]
-                EP6[Concept Quiz: Multiple Choice]
+                EP1["Overview & Key Points"]
+                EP2["Step-by-Step 5-Part Guidance"]
+                EP3["Equations Tab: KaTeX"]
+                EP4["Entities Tab: Components"]
+                EP5["AI Concept Tutor: MarkdownRenderer"]
+                EP6["Concept Quiz: Multiple Choice"]
             end
         end
         
         subgraph Utils ["Client Utility Layer"]
-            AR[animationResolver.ts]
-            ME[mathEvaluator.ts]
-            MR[markdownUtils.ts]
+            AR["animationResolver.ts"]
+            ME["mathEvaluator.ts"]
+            MR["markdownUtils.ts"]
         end
     end
 
@@ -222,22 +222,22 @@ flowchart TD
         EP_HIST["GET /api/history"]
         EP_HLTH["GET /api/health"]
         
-        JP[jsonParser.ts]
-        PV[planValidator.ts]
-        MC[modelConfig.ts]
+        JP["jsonParser.ts"]
+        PV["planValidator.ts"]
+        MC["modelConfig.ts"]
     end
 
     subgraph Storage ["Local Storage"]
-        SQL[(SQLite: sql.js WebAssembly / visualizations.sqlite)]
+        SQL[("SQLite: sql.js WebAssembly / visualizations.sqlite")]
     end
 
     subgraph AI ["External AI Service"]
-        GEMINI["Google Gemini API: @google/genai\n(gemini-3.1-flash-lite / gemini-flash-latest)"]
+        GEMINI["Google Gemini API: @google/genai<br/>(gemini-3.1-flash-lite / gemini-flash-latest)"]
     end
 
     LH -->|Submit Prompt/Image| EP_PLAN
     EP_PLAN --> MC
-    MC -->|Prompt & Payload| GEMINI
+    MC -->|"Prompt & Payload"| GEMINI
     GEMINI -->|Raw Response| JP
     JP --> PV
     PV -->|Save Session| SQL
@@ -258,7 +258,7 @@ flowchart TD
     MR --> EP5
     
     TB --> HD
-    HD <-->|Fetch/Delete| EP_HIST
+    HD <-- "Fetch / Delete" --> EP_HIST
     EP_HIST <--> SQL
 ```
 
@@ -281,7 +281,7 @@ flowchart TD
 | **Markdown** | Marked | `^18.1.1` | Compliant Markdown lexing and tokenization for AI Tutor chat |
 | **Icons** | Lucide React | `^0.546.0` | Clean, accessible SVG iconography |
 | **Animation** | Motion | `^12.23.24` | UI transitions and component animations |
-| **Database** | `sql.js` | `^1.14.2` | Server-side SQLite persistence in WebAssembly/Node.js |
+| **Database** | `sql.js` | `^1.14.2` | Server-side SQLite persistence in WebAssembly/Node.js; writes to runtime-generated `visualizations.sqlite` |
 | **Configuration**| `dotenv` | `^17.2.3` | Local environment variable management |
 
 ---
@@ -295,7 +295,7 @@ flowchart TD
 ├── package.json                     # Project manifest, dependencies, and scripts
 ├── server.ts                        # Express API server, Gemini AI caller, SQLite storage
 ├── tsconfig.json                    # TypeScript compiler configuration
-├── visualizations.sqlite            # File-backed SQLite database (auto-generated)
+├── visualizations.sqlite            # Runtime-generated SQLite database (excluded from Git via .gitignore)
 ├── vite.config.ts                   # Vite configuration (Tailwind v4, React plugin, aliases)
 ├── docs/
 │   └── screenshots/                 # Application screenshots and interface assets
@@ -431,13 +431,15 @@ Here is how a learner uses VAI to explore a concrete concept today:
 To ensure complete technical transparency during review, the following boundaries of the current codebase should be noted:
 
 - **Renderer Coverage:** Visualizations are mapped exclusively to four declarative primitives (`coordinate_graph`, `discrete_blocks`, `node_network`, `particle_system`). 3D WebGL meshes, arbitrary spatial audio, and non-Cartesian coordinate systems are not currently supported.
-- **Embedded Database:** Session history is persisted using WebAssembly `sql.js` writing to a single local file (`visualizations.sqlite`). It is designed for single-instance, lightweight use and is not suited for multi-server distributed clustering.
+- **Embedded Database:** Visualization plans and session metadata are persisted using WebAssembly `sql.js` writing to a single local runtime file (`visualizations.sqlite`, excluded from Git via `.gitignore`). AI Concept Tutor conversation history is maintained in-memory per session and is not stored in SQLite. The database is designed for single-instance, lightweight local use and is not suited for multi-server distributed clustering.
 - **AI Latency & Connectivity:** Plan generation and tutor chat depend on external Google Gemini API response times and active internet connectivity. Offline plan generation is not currently supported.
 - **2D Continuous Domain:** The coordinate graph engine handles 2D Cartesian curves ($y = f(x)$) and vector fields. Multi-variable 3D surface plots or complex contour integrations are not supported.
 
 ---
 
 ## Future Development: Manim Integration
+
+> **Implementation Status:** Manim integration represents proposed future work outlined in the architecture and roadmap below. It is not currently implemented in the running application, which renders all dynamic models using the four verified declarative SVG and HTML5 Canvas engines.
 
 ### What Manim Means in This Project
 [Manim](https://github.com/3b1b/manim) is the open-source mathematical animation engine created by Grant Sanderson (3Blue1Brown). Built in Python, Manim is renowned for producing exceptionally clear, publication-quality mathematical animations—including coordinate system transitions, formula morphing, geometric proofs, and calculus demonstrations.
@@ -467,36 +469,36 @@ The planned architecture cleanly separates live client interaction from asynchro
 ```mermaid
 flowchart TD
     subgraph Frontend ["Existing VAI Frontend (React 19)"]
-        UI_INPUT[Learner Concept Input: Text / Image]
+        UI_INPUT["Learner Concept Input: Text / Image"]
         
         subgraph CombinedView ["Future Unified Learning Workspace (Proposed)"]
             subgraph PathA ["Path A: Animated Explanation"]
-                VIDEO_PLAYER["Manim Animation Player\n(Proposed: MP4/WebM with Stage Timestamps)"]
+                VIDEO_PLAYER["Manim Animation Player<br/>(Proposed: MP4/WebM with Stage Timestamps)"]
             end
             
             subgraph PathB ["Path B: Interactive Exploration"]
-                SIM_ENGINE["VAI Interactive Simulation Engine\n(Existing: Coordinate Graph / Blocks / Particles)"]
-                SLIDERS["Authoritative Parameter Sliders\n(Existing: Live Real-Time Reactivity)"]
+                SIM_ENGINE["VAI Interactive Simulation Engine<br/>(Existing: Coordinate Graph / Blocks / Particles)"]
+                SLIDERS["Authoritative Parameter Sliders<br/>(Existing: Live Real-Time Reactivity)"]
             end
             
-            DECK["Explanation Deck, KaTeX Equations, AI Tutor\n(Existing: ExplanationPanel)"]
+            DECK["Explanation Deck, KaTeX Equations, AI Tutor<br/>(Existing: ExplanationPanel)"]
         end
     end
 
     subgraph Backend ["Existing VAI Backend (Express + tsx)"]
-        PLAN_API["AI Planning Endpoint\n(POST /api/generate-plan)"]
-        QUEUE["Asynchronous Job Coordinator\n(Proposed: Task Queue & Status Endpoint)"]
+        PLAN_API["AI Planning Endpoint<br/>(POST /api/generate-plan)"]
+        QUEUE["Asynchronous Job Coordinator<br/>(Proposed: Task Queue & Status Endpoint)"]
     end
 
     subgraph AI ["AI Planning Engine"]
-        GEMINI["Google Gemini API\n(Extracts Concept, Equations & Animation Stages)"]
+        GEMINI["Google Gemini API<br/>(Extracts Concept, Equations & Animation Stages)"]
     end
 
     subgraph ManimService ["Proposed Python Manim Service (Isolated Container/Worker)"]
-        VAL_LAYER["Animation Specification Validator\n(Proposed: Validates Scene Types & Limits)"]
-        TEMPLATES["Approved Manim Scene Templates\n(Proposed: Pre-vetted Python Scene Classes)"]
-        RENDERER["Manim Python Engine\n(Proposed: 3b1b/manim + ffmpeg)"]
-        MEDIA_STORE["Media Storage & CDN\n(Proposed: Generated MP4 Artifacts)"]
+        VAL_LAYER["Animation Specification Validator<br/>(Proposed: Validates Scene Types & Limits)"]
+        TEMPLATES["Approved Manim Scene Templates<br/>(Proposed: Pre-vetted Python Scene Classes)"]
+        RENDERER["Manim Python Engine<br/>(Proposed: 3b1b/manim + ffmpeg)"]
+        MEDIA_STORE["Media Storage & CDN<br/>(Proposed: Generated MP4 Artifacts)"]
     end
 
     UI_INPUT -->|Concept Request| PLAN_API
@@ -504,7 +506,7 @@ flowchart TD
     GEMINI -->|Structured Concept Plan| PLAN_API
     
     PLAN_API -->|Simulation Parameters| SIM_ENGINE
-    SLIDERS <-->|Instant Local Updates| SIM_ENGINE
+    SLIDERS <-- "Instant Local Updates" --> SIM_ENGINE
     
     PLAN_API -.->|Animation Specification (Proposed)| QUEUE
     QUEUE -.->|Submit Job| VAL_LAYER
