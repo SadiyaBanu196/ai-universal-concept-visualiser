@@ -1,0 +1,6 @@
+{
+  "name": "AI Universal Concept Visualiser",
+  "description": "Turn complex concepts, textbook pages, equations, and diagrams into interactive visual understanding through a generic AI-powered visualization engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
