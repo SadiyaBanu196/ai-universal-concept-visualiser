@@ -235,26 +235,26 @@ flowchart TD
         GEMINI["Google Gemini API: @google/genai<br/>(gemini-3.1-flash-lite / gemini-flash-latest)"]
     end
 
-    LH -->|Submit Prompt/Image| EP_PLAN
+    LH -->|"Submit Prompt or Image"| EP_PLAN
     EP_PLAN --> MC
     MC -->|"Prompt & Payload"| GEMINI
-    GEMINI -->|Raw Response| JP
+    GEMINI -->|"Raw Response"| JP
     JP --> PV
-    PV -->|Save Session| SQL
-    PV -->|Normalized Plan| GVE
+    PV -->|"Save Session"| SQL
+    PV -->|"Normalized Plan"| GVE
     
     GVE --> AR
     AR --> CD
-    CD -->|Parameter Values| GVE
+    CD -->|"Parameter Values"| GVE
     GVE --> R1
     GVE --> R2
     GVE --> R3
     GVE --> R4
     R1 --> ME
     
-    EP5 -->|Chat Message| EP_CHAT
+    EP5 -->|"Chat Message"| EP_CHAT
     EP_CHAT --> GEMINI
-    GEMINI -->|Tutor Answer| MR
+    GEMINI -->|"Tutor Answer"| MR
     MR --> EP5
     
     TB --> HD
@@ -501,19 +501,19 @@ flowchart TD
         MEDIA_STORE["Media Storage & CDN<br/>(Proposed: Generated MP4 Artifacts)"]
     end
 
-    UI_INPUT -->|Concept Request| PLAN_API
+    UI_INPUT -->|"Concept Request"| PLAN_API
     PLAN_API --> GEMINI
-    GEMINI -->|Structured Concept Plan| PLAN_API
+    GEMINI -->|"Structured Concept Plan"| PLAN_API
     
-    PLAN_API -->|Simulation Parameters| SIM_ENGINE
+    PLAN_API -->|"Simulation Parameters"| SIM_ENGINE
     SLIDERS <-- "Instant Local Updates" --> SIM_ENGINE
     
-    PLAN_API -.->|Animation Specification (Proposed)| QUEUE
-    QUEUE -.->|Submit Job| VAL_LAYER
-    VAL_LAYER -.->|Select Template| TEMPLATES
-    TEMPLATES -.->|Execute Render| RENDERER
-    RENDERER -.->|Save Video| MEDIA_STORE
-    MEDIA_STORE -.->|Stream Video URL| VIDEO_PLAYER
+    PLAN_API -.->|"Animation Specification - Proposed"| QUEUE
+    QUEUE -.->|"Submit Job"| VAL_LAYER
+    VAL_LAYER -.->|"Select Template"| TEMPLATES
+    TEMPLATES -.->|"Execute Render"| RENDERER
+    RENDERER -.->|"Save Video"| MEDIA_STORE
+    MEDIA_STORE -.->|"Stream Video URL"| VIDEO_PLAYER
 ```
 
 ### Component Breakdown of the Proposed System
