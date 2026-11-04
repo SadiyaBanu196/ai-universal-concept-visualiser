@@ -12,7 +12,7 @@ Instead of writing one-off, hardcoded animations for every specific topic, VAI i
 
 Try Visualiser here:
 
-[Open AI Universal Concept Visualiser](https://ais-pre-7jjln4zqnktua6qmssbnoi-320791625091.asia-southeast1.run.app)
+[Open AI Universal Concept Visualiser](https://ai-universal-concept-visualiser.ai.studio)
 
 ---
 
